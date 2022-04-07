@@ -1,0 +1,49 @@
+---
+title: "Tidy Tuesday #5"
+author: "RACHEL PERCY"
+date: "4/7/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r load-libraries}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(readr)
+library(sf) 
+library(showtext)
+
+Arial <- Type1Font(family = "Arial",
+                   metrics = c("ArialMT.afm",
+                               "arial-BoldMT.afm", 
+                               "Arial-ItalicMT.afm",
+                               "Arial-BoldItalicMT.afm"))
+```
+
+```{r load-dataset}
+solar_data <- read_csv("mnsolar5.csv")
+
+#mpls_nbhd <- st_read("Minneapolis_Neighborhoods/Minneapolis_Neighborhoods.shp", quiet = TRUE)
+```
+
+```{r fig.width = 20, fig.height = 12, fig.alt="Proportion bar graph of Minnesota Solar Customer Types by Utilities"}
+solar_data %>% 
+  select(Utility, City, `Customer Type`) %>% 
+  group_by(Utility, `Customer Type`) %>%
+  summarise(total_type = n()) %>% 
+  ggplot() + 
+  geom_bar(mapping = aes(x = Utility, fill = `Customer Type`), position = "fill") +
+  scale_y_continuous(expand=c(0,0)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 0.95),
+        plot.title = element_text(size = 20)) +
+  labs(title = "Tidy Tuesday: Proportion of Minnesota Solar Customer Types by Utilities",
+       caption = "Graph made by Rachel Percy | April 7, 2022 \nData from Public Utilities Commission",
+       x = "",
+       y = "")
+```
+
