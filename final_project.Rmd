@@ -81,7 +81,7 @@ solar_data %>%
   labs(x = "", y = "", title = "Annual Solar Installation Growth by Customer Type - Statewide") 
 ```
 
- 
+
 
 ```{r fig.width = 20, fig.height = 12, fig.alt="Proportion bar graph of Minnesota Solar Customer Types by Utilities"}
 solar_data %>% 
