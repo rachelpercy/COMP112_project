@@ -1,0 +1,84 @@
+---
+title: "Emanuel's r markdown"
+output: html_document
+date: '2022-04-23'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+mnsolar <- readr::read_csv('https://raw.githubusercontent.com/rachelpercy/COMP112_project/main/mnsolar5.csv')
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(openintro)
+library(ggthemes)
+```
+
+```{r}
+mnsolar %>% 
+  group_by(`Utility Type`) %>% 
+  summarise(total_category = n()) %>% 
+  ggplot(aes(x = `Utility Type`, 
+                 y = total_category))+
+    geom_col()+
+  labs(title = "Utility Type",
+       x = "",
+       y = "Quantity")
+```
+
+```{r}
+mnsolar %>% 
+  mutate(`Incentive Program`= str_squish(str_to_lower(`Incentive Program`))) %>% 
+  group_by(`Customer Type`,  `Utility Type`) %>% 
+  summarise(total_cat = n()) %>% 
+  ggplot(aes(`Utility Type`))+
+  geom_bar()+
+  facet_wrap(vars(`Customer Type`))
+ # ggplot()+
+  #geom_bar()
+#Total incentive programs  
+#Customer Type and incentive program 
+
+#make all the incentive programs lowercase
+
+#  facet by customer type , bar by utility type
+#fill by utility type (no legend)
+```
+
+
+```{r}
+#Top incentive program 
+mnsolar %>% 
+  mutate(`Incentive Program`= str_squish(str_to_lower(`Incentive Program`))) %>% 
+  group_by( `Incentive Program`) %>% 
+  summarise(total_cat = n()) %>% 
+  ggplot()+
+  geom_col(aes( y = `Incentive Program`,
+            x = total_cat))
+
+```
+
