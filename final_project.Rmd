@@ -1,8 +1,9 @@
 ---
-title: "Tidy Tuesday #5"
-author: "RACHEL PERCY"
+title: "Final COMP112 Group Project"
+author: "RACHEL, NORA, EMANUEL"
 date: "4/7/2022"
 output: html_document
+code_download: true
 ---
 
 ```{r setup, include=FALSE}
@@ -15,20 +16,72 @@ library(dplyr)
 library(tidyverse)
 library(readr)
 library(sf) 
-library(showtext)
+#library(showtext)
 
-Arial <- Type1Font(family = "Arial",
-                   metrics = c("ArialMT.afm",
-                               "arial-BoldMT.afm", 
-                               "Arial-ItalicMT.afm",
-                               "Arial-BoldItalicMT.afm"))
+theme_set(theme_minimal())
 ```
 
-```{r load-dataset}
+
+```{r load-data}
 solar_data <- read_csv("mnsolar5.csv")
-
-#mpls_nbhd <- st_read("Minneapolis_Neighborhoods/Minneapolis_Neighborhoods.shp", quiet = TRUE)
 ```
+
+
+```{r utility-installations}
+installs_graph <- solar_data %>% 
+  group_by(Utility) %>% 
+  summarise(Utility_n = n()) %>%
+  mutate(total_n = sum(Utility_n),
+         percent_total = ((Utility_n/total_n)*100)) %>% 
+  arrange(desc(percent_total)) %>% 
+  ggplot() +
+  geom_bar(
+    mapping = aes(x = Utility, fill = percent_total),
+    show.legend = FALSE,
+    width = 1
+  ) +
+  theme(aspect.ratio = 1) +
+  labs(x = NULL, y = NULL)
+
+installs_graph + coord_polar()
+```
+
+```{r utility-capacity}
+solar_data %>% 
+  group_by(Utility) %>% 
+  summarise(total_capacity = sum(`DER Capacity kW AC`)) %>% 
+  mutate(overall_capacity = sum(total_capacity),
+         percent_total = ((total_capacity/overall_capacity)*100)) %>% 
+  arrange(desc(percent_total))
+```
+
+
+```{r cumulative-capacity}
+solar_data %>% 
+  group_by(`Year Interconnected`) %>% 
+  filter(`Year Interconnected` != 2021) %>% 
+  summarise(sum_capacity = sum(capacity_MW)) %>% 
+  mutate(cum_sum_capacity = cumsum(sum_capacity)) %>% 
+  ggplot(aes(x = `Year Interconnected`, y = cum_sum_capacity)) +
+  geom_line() +
+  labs(x = "", y = "", title = "Cumulative Solar Capacity - Statewide (MW)")
+```
+
+
+```{r installations-added}
+solar_data %>%
+  select(City, `Year Interconnected`, `Customer Type`) %>% 
+  filter(`Year Interconnected` != 2021) %>% 
+  filter(`Customer Type` != c("NA")) %>% 
+  group_by(`Year Interconnected`, `Customer Type`) %>%
+  summarise(installs_n = n()) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = `Year Interconnected`, y = installs_n, color = `Customer Type`)) +
+  geom_line() +
+  labs(x = "", y = "", title = "Annual Solar Installation Growth by Customer Type - Statewide") 
+```
+
+ 
 
 ```{r fig.width = 20, fig.height = 12, fig.alt="Proportion bar graph of Minnesota Solar Customer Types by Utilities"}
 solar_data %>% 
@@ -46,4 +99,5 @@ solar_data %>%
        x = "",
        y = "")
 ```
+
 
