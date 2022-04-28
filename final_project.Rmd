@@ -20,7 +20,7 @@ library(sf)
 
 theme_set(theme_minimal())
 ```
-
+ 
 
 ```{r load-data}
 solar_data <- read_csv("mnsolar5.csv")
