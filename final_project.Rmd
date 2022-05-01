@@ -1,14 +1,24 @@
 ---
-title: "Final COMP112 Group Project"
-author: "RACHEL, NORA, EMANUEL"
-date: "4/7/2022"
+title: "So What's Up With Solar?"
+subtitle: ""
+author: ""
+date: ""
 output: html_document
 code_download: true
 ---
 
+<div style="margin-bottom:100px;">
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ```
+
+</div>
+## Exploring Trends in Minnesota's Solar Industry
+**By Nora de Rege, Emanuel Deleon Otazu, and Rachel Percy**
+*April 29, 2022*
+<div style="margin-bottom:20px;">
+</div>
 
 ```{r load-libraries}
 library(ggplot2)
@@ -16,6 +26,10 @@ library(dplyr)
 library(tidyverse)
 library(readr)
 library(sf) 
+library(ggthemes)
+library(scales)
+library(gganimate)
+library(plotly)
 #library(showtext)
 
 theme_set(theme_minimal())
@@ -26,34 +40,87 @@ theme_set(theme_minimal())
 solar_data <- read_csv("mnsolar5.csv")
 ```
 
+**data citation for the graphs:** "Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, \nMN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/"
 
-```{r utility-installations}
-installs_graph <- solar_data %>% 
-  group_by(Utility) %>% 
-  summarise(Utility_n = n()) %>%
-  mutate(total_n = sum(Utility_n),
-         percent_total = ((Utility_n/total_n)*100)) %>% 
-  arrange(desc(percent_total)) %>% 
+**regarding the structure of the final report:** 
+Title: In the YAML section of the document. A descriptive title & list of all group members.
+
+Introduction and background: An introduction that motivates & outlines a clear, specific set of research questions. Also, provide some background on your topic.
+
+Data collection: Specification of your data sources and collection process.
+
+Analysis: This is the bulk of the report which either has a presentation of the group’s key findings and take-aways or gives the detail of how someone would interact and what people should take away from the shiny app. If you choose to do a shiny app, be sure to include a link to the shinyapps.io site.
+
+
+# Motivating Questions
+
+* What are some trends we can identify in Minnesota's solar industry?
+* How do these trends differ in and out of the Twin Cities metro area?
+* What customer types are driving these trends? What does the prevalence of certain customer types indicate about the future of solar?
+* Just how popular and prevalent are solar panels?
+
+
+
+# Solar in the United States
+## What is solar and how does it work? (Department of Energy, US)
+
+Over 3 million installations have been built across the country—with 1 million being built in the last two years.  
+
+Solar technologies convert sunlight into electrical energy either through photovoltaic (PV) panels or through mirrors that concentrate solar radiation. This energy can be used to generate electricity or be stored in batteries or thermal storage.
+
+## PV basics
+ When the sun shines onto a solar panel, energy from the sunlight is absorbed by the PV cells in the panel. This energy creates electrical charges that move in response to an internal electrical field in the cell, causing electricity to flow.
+
+## Tax credit
+
+The federal residential solar energy credit is a tax credit that can be claimed on federal income taxes for a percentage of the cost of a solar photovoltaic (PV) system.
+
+In December 2020, Congress passed an extension of the ITC, which provides a 26% tax credit for systems installed in 2020-2022, and 22% for systems installed in 2023.
+
+
+
+```{r}
+graph1 <- solar_data %>%
+  group_by(`Utility Type`) %>%
+  summarise(total_category = n()) %>%  
+# # mutate( total_category_ = fct_reorder(total_category)) %>%
   ggplot() +
-  geom_bar(
-    mapping = aes(x = Utility, fill = percent_total),
-    show.legend = FALSE,
-    width = 1
-  ) +
-  theme(aspect.ratio = 1) +
-  labs(x = NULL, y = NULL)
+  geom_col(aes(x = `Utility Type`,
+          y = total_category)) +
+  labs(title = "Utility Type",
+       x = "",
+       y = "")+
+  theme_clean()
 
-installs_graph + coord_polar()
+
+
+graph2 <- solar_data %>%
+  mutate(`Incentive Program`= str_squish(str_to_lower(`Incentive Program`))) %>%
+  filter(`Customer Type`%in%c( "commercial", "community solar garden", "residential")) %>%
+  group_by(`Customer Type`,  `Utility Type`) %>%
+  summarise(total_cat = n()) %>%
+  ggplot(aes(`Utility Type`))+
+  geom_col(aes(y =  total_cat,
+               fill = `Utility Type`
+               ))+
+  facet_wrap(vars(`Customer Type`))+
+  guides(fill=FALSE)+
+  labs( title =  "Utility Type by Customer Type",
+        x = "",
+        y = "",
+        caption = "*Data from the public and industrial sectors were not avalaible")+
+  theme_clean()
+
+graph1/graph2
 ```
 
-```{r utility-capacity}
-solar_data %>% 
-  group_by(Utility) %>% 
-  summarise(total_capacity = sum(`DER Capacity kW AC`)) %>% 
-  mutate(overall_capacity = sum(total_capacity),
-         percent_total = ((total_capacity/overall_capacity)*100)) %>% 
-  arrange(desc(percent_total))
-```
+
+# Minnesota's Solar Industry
+
+
+
+While the solar industry has existed in Minnesota for several decades now, it was not until the 2000s–especially the late 2010s–that solar saw considerable growth in both distributed capacity and number of installations. 2009 is when Minnesota hit the milestone of one megawatt (MW) installed solar^[“Solar Industry,” MN Department of Commerce, accessed April 28, 2022, https://mn.gov/commerce/industries/energy/solar/]. Just ten years later, that number climbed to one gigawatt (GW)^[“Mission & History,” Minnesota Solar Energy Industries Association, accessed April 28, 2022, https://www.mnseia.org/mission-history]. The rapid expansion of the solar industry is also seen in the number of installations increasing from 5,800 in 2018^[“Solar Fact Sheet,” Minnesota Department of Commerce, https://mn.gov/commerce-stat/pdfs/solar-fact-sheet.pdf] to roughly 10,700 by early 2021^[“Annual Distributed Energy Resources (DER) Reports,” Minnesota Public Utilities Commission, accessed April 28, 2022, https://mn.gov/puc/activities/utility-reporting/annual-der-reports/], representing an 84% growth in three years. 
+
 
 
 ```{r cumulative-capacity}
@@ -64,8 +131,18 @@ solar_data %>%
   mutate(cum_sum_capacity = cumsum(sum_capacity)) %>% 
   ggplot(aes(x = `Year Interconnected`, y = cum_sum_capacity)) +
   geom_line() +
-  labs(x = "", y = "", title = "Cumulative Solar Capacity - Statewide (MW)")
+  labs(x = "", 
+       y = "", 
+       title = "Cumulative Solar Capacity - Statewide (MW)", 
+       caption = "Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, \nMN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/")
+
 ```
+
+
+**Note:** The data used in this analysis was collected by the Public Utilities Commission (PUC). Every year, each utility in the state is required to submit data on all solar installations in their service territory. The data can be found on the PUC website and the specific dataset we used is called "MN Utility Reported DER through 12/31/2020". The data can be found [here](https://mn.gov/puc/activities/utility-reporting/annual-der-report/).
+
+The majority of installations fall into the following customer types: residential, commercial, community solar garden (CSG), and large-scale utility. As defined by Clean Energy Resource Teams (CERTs), a community solar garden is a solar photovoltaic (PV) system that produces solar electricity for participating subscribers. Rather than directly installing panels on their roof, subscribers purchase a share of the solar garden and receive Renewable Energy Credits (RECs) on their utility bill from the electricity generated by their share. Under Statute 216B.1691, passed by the Minnesota Legislature in 2013, Xcel Energy was required to create a CSG program which they call Solar*Rewards. This helped fuel the rapid growth in distributed solar capacity seen in the late 2010s because CSGs have an average energy output of 1,000 kW compared to residential PV units that average 4-10 kW^[Ibid.]. However, the fastest growing customer type when looking at number of installations is residential.
+
 
 
 ```{r installations-added}
@@ -78,26 +155,357 @@ solar_data %>%
   ungroup() %>% 
   ggplot(aes(x = `Year Interconnected`, y = installs_n, color = `Customer Type`)) +
   geom_line() +
-  labs(x = "", y = "", title = "Annual Solar Installation Growth by Customer Type - Statewide") 
+  labs(x = "", 
+       y = "", 
+       title = "Annual Solar Installation Growth by Customer Type - Statewide",
+       caption = "Data from the MN Public Utilities Commission Annual \nDistributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, \nreleased 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/") 
 ```
 
 
 
-```{r fig.width = 20, fig.height = 12, fig.alt="Proportion bar graph of Minnesota Solar Customer Types by Utilities"}
-solar_data %>% 
-  select(Utility, City, `Customer Type`) %>% 
-  group_by(Utility, `Customer Type`) %>%
-  summarise(total_type = n()) %>% 
-  ggplot() + 
-  geom_bar(mapping = aes(x = Utility, fill = `Customer Type`), position = "fill") +
+Servicing all of the solar capacity in the state are more than one hundred different utility companies, ranging from co-ops to investor-owned utilities^[Ibid.]. However, Xcel Energy is by far the largest provider providing 93% of the state’s distributed solar capacity as well as 67% of total installations^[Ibid.].
+
+According to The Solar Foundation, in 2019 Minnesota had 4,335 solar jobs, ranking 14th in the country for solar jobs per capita^["Solar Jobs Census 2019,” The Solar Foundation, accessed April 28, 2022, https://solarstates.org/#state/minnesota/counties/solar-jobs/2019]. Minnesota also has one of the best community solar programs, producing 839 MW AC of community solar, the most of any state^[“Minnesota Solar Fact Sheet,” Minnesota Department of Commerce, https://mn.gov/commerce-stat/pdfs/solar-fact-sheet-2022.pdf]. 
+
+
+# Number of Installations over Time
+
+
+  Since the passage of the 2013 Solar Energy Legislation in Minnesota, which required “Minnesota’s public utilities to generate or procure sufficient electricity from solar sources so that by the end of 2020, at least 1.5 percent of the utility’s retail electricity sales in the state are produced from solar energy.”^["2013 Solar Energy Legislation in Minnesota," House Research Department, August 2013, https://www.house.leg.state.mn.us/hrd/pubs/ss/sssolarleg.pdf] This requires each utility to shift the source of their generated power to solar. Also in 2013, the state set a goal of 10% of electricity sales from solar by 2030.^["Profile Analysis," Minnesota State Profile and Energy Estimates, June 2021, https://www.eia.gov/state/analysis.php?sid=MN] This is part of a larger mission of the state to shift its energy to renewable energy sources. In order to make it easier to achieve these goals, the state passed various policies that allowed for rebates, tax exemptions, performance payments, and a favorable net metering policy.^["Solar Power in Minnesota: All You Need To Know," SolarNation, https://www.solar-nation.org/minnesota]
+
+  Many of these goals are well on their way to being achieved. While not specific to solar, “renewable energy provided about three-tenths of Minnesota’s in-state electricity generation in 2020.”^["Profile Analysis," Minnesota State Profile and Energy Estimates, June 2021, https://www.eia.gov/state/analysis.php?sid=MN] As of 2020, renewable energy accounted for the largest share of energy sources in the state , as coal, the previous largest producer of energy, contributed less than both renewable energy and nuclear energy. In 20201, solar energy provided more than 3% of the state's net generation.^["2022 Minnesota Energy Factsheet," Clean Energy Economy MN, 2022, https://www.cleanenergyeconomymn.org/wp-content/uploads/2022/04/CEEM-2022-Factsheet-Final-25Apr2022.pdf] Furthermore, Minnesota’s renewable energy portfolio standard (RPS) requires that the state’s utilities generate at least 25% of electricity retail sales from renewable sources by 2025. The state’s utilities met this goal of 25% in 2018.
+
+  Some of the projects these utilities are taking on include Xcel’s 100-megawatt North Star project. This project has 440,000 solar panels installed in Chisago County. The Aurora Solar project has 100 megawatts of power across 16 sites.^[Mike Hughlett, "Solar Power in Minnesota is Heating Up," Star Tribune, Jun 09 2017, Proquest. 28 Apr. 2022.] These types of projects, brought on by the incentives passed by the state, have been the primary drivers of capacity growth in Minnesota.
+
+  As a result of the increased reliance on renewable and solar energy, “Minnesota’s power sector greenhouse gas emissions have fallen 40% in the last decade.”^["2022 Minnesota Energy Factsheet," Clean Energy Economy MN, 2022, https://www.cleanenergyeconomymn.org/wp-content/uploads/2022/04/CEEM-2022-Factsheet-Final-25Apr2022.pdf] While there was an increase in emissions in 2021, they still remain below pre-pandemic levels. While there is most likely more to be done, it appears as if Minnesota is on track to reduce their emissions in the aim of climate change mitigation. As solar currently only generates about 3% of the state’s electricity, many utilities are pushing to supply 10% of the state’s power needs by 2030.  
+
+```{r Number}
+solar_panel_install <- solar_data %>%
+  group_by(`Year Interconnected`) %>%
+  filter(!is.na(`Year Interconnected`)) %>%
+  count() %>%
+  rename(`Number of Panels` = n) %>%
+  ggplot() +
+  geom_col(aes(x = `Year Interconnected`,
+               y = `Number of Panels`),
+           fill = "darkgreen") +
+  labs(title ="Number of Solar Panels Interconnected Each Year",
+       y = "",
+       x = "") +
+  theme(panel.grid.minor.x = element_blank()) +
   scale_y_continuous(expand=c(0,0)) +
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 0.95),
-        plot.title = element_text(size = 20)) +
-  labs(title = "Tidy Tuesday: Proportion of Minnesota Solar Customer Types by Utilities",
-       caption = "Graph made by Rachel Percy | April 7, 2022 \nData from Public Utilities Commission",
-       x = "",
-       y = "")
+  scale_x_continuous(expand=c(0,0))
+
+ggplotly(solar_panel_install)
 ```
+
+Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/
+
+As seen in the graph above, a few years after the passage of the 2013 legislation, the number of solar panels installed increased dramatically. Although there wasn't a dramatic increase immediately after the passage of the legislation, there was a slow increase in the years following. As the legislation required more negotiation and finalization, it took a few years for the legislation to be completed and to kick in, accounting for the spike in installations in 2017.
+
+```{r Install by Metro}
+metro_panels <- solar_data %>%
+  mutate(in_metro = ifelse(in_metro, "In Metro", "Out of Metro")) %>%
+  group_by(`Year Interconnected`, in_metro) %>%
+  filter(!is.na(`Year Interconnected`)) %>%
+  count() %>%
+  rename(`Number of Panels` = n) %>%
+  ungroup() %>%
+  ggplot() +
+  geom_col(aes(x = `Year Interconnected`,
+               y = `Number of Panels`),
+           fill = "darkgreen") +
+  facet_wrap( ~ in_metro) +
+  labs(title ="Number of Solar Panels Interconnected Each Year",
+       subtitle = "Compared by whether it is in the Twin Cities Metro Area",
+       y = "",
+       x = "") +
+  theme(panel.grid.minor.x = element_blank()) +
+  scale_y_continuous(expand=c(0,0)) +
+  scale_x_continuous(expand=c(0,0))
+
+ggplotly(metro_panels)
+```
+
+Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/
+
+When comparing the number of solar panels installed each year in the Twin Cities Metro Area to the number installed out of the Twin Cities Metro Area, it is clear that a large amount of the panels installed, especially in 2020, were installed in the Twin Cities Metro area.
+
+```{r Percent Change}
+percent_change <- solar_data %>%
+  group_by(`Year Interconnected`) %>%
+  filter(!is.na(`Year Interconnected`),
+         `Year Interconnected` > 1999,
+         `Year Interconnected` < 2021) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(year_lag = lag(n),
+         `Percent Change` = ((((n-year_lag))/n))) %>%
+  ggplot(aes(x = `Year Interconnected`,
+             y = `Percent Change`)) +
+  geom_line() +
+  geom_point(color = "red") +
+  labs(title = "Annual Percent Change of Number of Installations",
+       x = "",
+       y = "") +
+  scale_y_continuous(labels = percent)
+
+ggplotly(percent_change)
+```
+
+Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/
+
+This graph demonstrates the percent change of number of solar panel installations. This compares the previous year's number of installations to the next year.
+
+```{r Cumulative Install}
+cumulative_install <- solar_data %>%
+  group_by(`Year Interconnected`) %>%
+  filter(!is.na(`Year Interconnected`)) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(`Cumulative Panels` = cumsum(n)) %>%
+  ggplot() +
+  geom_col(aes(x = `Year Interconnected`,
+               y = `Cumulative Panels`),
+           fill = "darkgreen") +
+  labs(title ="Cumulative Number of Solar Panels Interconnected in Minnesota",
+       y = "",
+       x = "") +
+  theme(panel.grid.minor.x = element_blank()) +
+  scale_y_continuous(expand=c(0,0)) +
+  scale_x_continuous(expand=c(0,0))
+
+ggplotly(cumulative_install)
+```
+
+Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/
+
+This graph is included just to show the number of solar panels that have been installed in total in Minnesota. There was a total of 2 solar panels installed in the first year of the data being collected. In 2021, the last year that data was collected, there were a total of 10,721 solar panels installed.
+
+# Customer Type
+
+  As evidenced by the response to increased solar panel installations and usage, solar panels remain an effective and popular form of renewable energy. For many businesses, installing solar panels and switching to solar power has been a popular shift. According to Griffin Dooling, who is a chief executive of Blue Horizons Energy, discussed the rise of businesses turning to solar: “The growing list of clients like the improving economics as well as environmental benefits. Energy sustainability is a core piece of their business. They’re getting pressure from customers, employees and their boards about sustainability and values. We’ve seen clients who have used the solar component of their energy mix to win more business.”^[NEAL ST, ANTHONY. "Solar Power Glows in Minnesota." Star Tribune Jul 18 2021 ProQuest. 28 Apr. 2022.] The popularity of solar energy, both from consumers and from producers, is evident, and accounts for the dramatic increases of solar installations in the last few years. For example, the growth in the commercial and industrial markets, as well as community solar represents 99% of the growth of the solar market. This is because “commercial real investors interested in doing solar are getting a return similar to other real estate investments.”^[Bridgetower, Media N. "Solar Energy Shining in Minnesota." The Daily Reporter Nov 16 2016 ProQuest. 28 Apr. 2022 .] However, the popularity of solar cannot only be attributed to business costs. The increase in solar projects requires a large labor force to build and maintain the panels. In 2018, there was an 8.1% growth in solar jobs. The solar industry is a growing source of economic opportunity, as it creates jobs and pays living wages across many groups of people, regardless of previous experience.^[Ibid.]
+
+  Furthermore, the interim executive director of the Minnesota Solar Industries Association, Peter Teigland, discussed the general popularity of solar in the state. He claimed that “solar is contagious. You see your solar on schools or your neighbor's roof, you are more likely to inquire and even more likely to get it yourself.”^[NEAL ST, ANTHONY. "Solar Power Glows in Minnesota." Star Tribune Jul 18 2021 ProQuest. 28 Apr. 2022.] Ira Salmela and her husband,  Duluth residents, were able to invest in their own solar panels in 2018. As a result of various incentives and tax credits, they were able to bring the cost of installation down from $30,000 to $12,000. Since installation, they say “So far, it’s been great. We haven’t had any power bills at all… Instead of putting in a new kitchen, I wanted to put something in that would pay off long term. The estimate is that it will pay itself back within 7-10 years of installation.”^["The Salmelas share their story about going solar," WDIO ABC, April 20, 2022, https://www.wdio.com/news/going-solar-panels-renewable-energy-salmelas-duluth/6450696/] This sentiment has been popular. Instead of investing in other home remodelings or improvements, residents are investing in solar power as a result of incentives, low costs, and return on investments.
+
+In this data, there are 6 different customer types: commercial, community solar garden, industrial, public, residential, and utility.
+
+* A community solar garden allows people to support renewable energy as a way to help the environment. Consumers are able to purchase ‘subscriptions’ to a central solar facility, and in return they receive “credit on their electric bills for the energy it produces.”^["Community Solar Gardens," Minnesota's Attorney General's Office, https://www.ag.state.mn.us/Consumer/Publications/CommunitySolarGardens.asp] With the use of community solar gardens, consumers no longer have to install solar on their rooftops because the central solar facility is constructed for multiple consumers.
+
+* Residential solar panels are solar panels that are often installed on the roof of a home. This often allows consumers to use the power that the panels produce, while excess energy flows back to the power grid.
+
+* Utility-scale solar panels is large scale solar power that could be from a photo voltaic power station at a large scale or is concentrated
+
+* Commercial customer types are businesses or enterprises that have solar panels installed as part of their business properties.
+
+* Industrial customer types are those who install solar panels for the purpose of industrial processes. These are generally at a larger scale than residential solar panels.
+
+* Public customer types are customers that are operating publicly, for example, either school or government entities taking on solar.
+
+```{r, eval = FALSE}
+customer_type_installation <- solar_data %>%
+  group_by(`Year Interconnected`, `Customer Type`) %>%
+  filter(!is.na(`Year Interconnected`),
+         !is.na(`Customer Type`),
+         `Year Interconnected` < 2021) %>%
+  count() %>%
+  ggplot(aes(x = `Year Interconnected`,
+                y = n,
+                color = `Customer Type`)) +
+  geom_line() +
+  geom_text(aes(label = `Customer Type`))+
+  transition_reveal(as.integer(`Year Interconnected`)) +
+  theme(panel.grid.minor.x = element_blank(),
+        legend.position = "none") +
+  labs(title = "Number of Installations installed each year by Customer Type",
+       subtitle = "Year: {frame_along}",
+       y = "",
+       x = "")
+
+customer_install <- animate(customer_type_installation,
+        end_pause = 20)
+
+anim_save("customer_type_installation.gif", customer_install)
+```
+
+```{r}
+knitr:: include_graphics("customer_type_installation.gif")
+```
+
+Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/
+
+This graph demonstrates the trends discussed earlier in the increased popularity of solar panels by showing the number of solar panels installed each year, made distinct by customer type. This popularity and increased solar panel usage is largely driven by residential interests. The incentive programs and lowered costs associated with solar panel installation as a result of the 2013 legislation has made it significantly more feasible and accessible for residents to install solar panels in their homes. Commercial solar panel installations consistently make up the second largest customer type, and community solar gardens, which first appeared in our data in 2014, was slightly lower than commercial solar installations.
+
+```{r Prevalence Customer}
+prevalence_customer <- solar_data %>%
+  group_by(`Year Interconnected`, `Customer Type`) %>%
+  filter(!is.na(`Year Interconnected`),
+         !is.na(`Customer Type`),
+         `Year Interconnected` > 1999) %>%
+  ggplot(aes(x = `Year Interconnected`,
+             fill = `Customer Type`)) +
+  geom_bar() +
+ theme(panel.grid.minor.x = element_blank(),
+        legend.position = "none") +
+  labs(title = "Prevalence of Each Customer Type",
+       y = "",
+       x = "") +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0))
+
+ggplotly(prevalence_customer,
+         tooltip = c("Customer Type", "count"))
+```
+
+Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/
+
+This graph shows the number of solar panels installed each year, broken down by customer type. This demonstrates how many solar panels were installed for each customer type group.  
+
+```{r Prevalence Customer by Metro}
+prop_customer_metro <- solar_data %>%
+  mutate(in_metro = ifelse(in_metro, "In Metro", "Out of Metro")) %>%
+  group_by(`Year Interconnected`, `Customer Type`) %>%
+  filter(!is.na(`Year Interconnected`),
+         !is.na(`Customer Type`),
+         `Year Interconnected` > 1999) %>%
+  ggplot(aes(x = `Year Interconnected`,
+             fill = `Customer Type`)) +
+  geom_bar() +
+  facet_wrap( ~ in_metro) +
+  theme(panel.grid.minor.x = element_blank(),
+        legend.position = "none") +
+  labs(title = "Prevalence of Each Customer Type",
+       subtitle = "Compared by whether it is in or out of the Twin Cities Metro Area",
+       x = "",
+       y = "") +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0))
+
+ggplotly(prop_customer_metro,
+         tooltip = c("Customer Type", "count"))
+```
+
+Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/
+
+I compared the prevalence of each customer type by whether or not it was in the Twin Cities Metro area. It is clear that residential customers make up a majority of the installed solar panels both in and out of the metro area. However, there are more solar panels installed each year in the metro area than outside the metro area, and a larger proportion of the customer types in the Twin Cities metro area is residential. Outside of the metro area, there were a lot more community solar gardens installed.
+
+
+# Proportion!
+
+```{r Proportion}
+prop_customer_type <- solar_data %>%
+  group_by(`Year Interconnected`, `Customer Type`) %>%
+  filter(!is.na(`Year Interconnected`),
+         !is.na(`Customer Type`),
+         `Year Interconnected` > 1999) %>%
+  ggplot(aes(x = `Year Interconnected`,
+             fill = `Customer Type`)) +
+  geom_bar(position = "fill") +
+  theme(panel.grid.minor.x = element_blank(),
+        legend.position = "none") +
+  labs(title = "Propotion of Each Customer Type",
+       y = "",
+       x = "") +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0))
+
+ggplotly(prop_customer_type,
+         tooltip = c("Customer Type", "count"))
+```
+
+Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/
+
+This graph demonstrates the proportion of each customer type over the years. 2003 had the highest proportion of commercial solar, but residential customers made up the majority of the customer types for the rest of the years.
+
+
+```{r Metro Proportion}
+metro_proportion <- solar_data %>%
+  mutate(in_metro = ifelse(in_metro, "In Metro", "Out of Metro")) %>%
+  group_by(`Year Interconnected`, `Customer Type`) %>%
+  filter(!is.na(`Year Interconnected`),
+         !is.na(`Customer Type`),
+         `Year Interconnected` > 1999) %>%
+  ggplot(aes(x = `Year Interconnected`,
+             fill = `Customer Type`)) +
+  geom_bar(position = "fill") +
+  facet_wrap( ~ in_metro) +
+  theme(panel.grid.minor.x = element_blank(),
+        legend.position = "none") +
+  labs(title = "Propotion of Each Customer Type",
+       subtitle = "Compared by whether it is in or out of the Twin Cities Metro Area",
+       x = "",
+       y = "",
+       caption = "made by Nora") +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0))
+
+ggplotly(metro_proportion,
+         tooltip = c("Customer Type", "count"))
+```
+
+Data from the MN Public Utilities Commission Annual Distributed Energy Resources (DER) Reports, MN Utility Reported DER through 12/31/2020, released 7/15/2021), https://mn.gov/puc/activities/utility-reporting/annual-der-reports/
+
+This graph shows the proportion of each customer type, and compares these proportions by whether they're in the Twin Cities Metro area. Residential solar panels still make up the majority of the customer types for the solar panels, but I find it interesting that the community solar gardens are more prevalent outside of the Twin Cities Metro area, and in 2017, 2018, 2019, and 2020, community solar gardens accounted for a larger proportion of the solar panel installation customer types than commercial.
+
+
+# Utilities
+## Utilities are electric distribution companies that can be:
+
+Investor-Owned Utility(IOU): large electric distributors that issue stock owned by shareholders.
+Cooperative (Co-op): not-for-profit member-owned utilities.
+Publicly owned: include federal-, state-, and municipal-run utilities
+
+
+```{r}
+solar_data %>%
+  mutate(`Incentive Program`= str_squish(str_to_upper(`Incentive Program`)),
+          ) %>%
+ #mutate(`Incentive Program` = ifelse(is.na(`Incentive Program`)| is.N/A, mean(`Incentive Program`, na.rm = T),`Incentive Program`))%>%
+  group_by( `Incentive Program`) %>%
+  filter(n()>10) %>%
+  summarise(total_cat = n()) %>%
+  ungroup() %>%
+  ggplot()+
+  geom_col(aes( y = `Incentive Program`,
+            x =total_cat))+
+  labs(title = "Top 10 incentive program",
+       x = "",
+       y = "")+
+  theme_clean()
+
+```
+
+
+# Minnesota Solar Incentive Programs (EnergySage)
+
+There are many Incentive Programs for Minnesotans to use solar energy, some of them are:
+
+Sales tax exemption: exemption of any sales taxes on solar purchase Federal solar tax credit: through the Investment Tax Credit (ITC), it is possible to reduce the cost of your PV solar energy system by 26 percent. Xcel Energy’s Solar*Rewards Program: this program offers solar homeowners in Xcel Energy’s service area a yearly payment based on the energy production of their photovoltaic system. SolarSense: It is a lottery-based rebate that could cover up to 60 percent of the price of installation for any qualified solar homeowner under the utility of Minnesota Power.
+
+# Cost and Saving (FORBES)
+
+Average Cost $ 16,000 Lowest Cost $ 3,500 Highest Cost $ 35,000
+
+How much solar panels will save you depends on a number of factors, including the hours of daily direct sunlight available to the panels, the angle of your roof and the size of your solar panel system. The most important factor, though, in determining how much money solar panels will save you, is simply your local electricity rates.
+
+Basic steps to calculate your savings:
+
+Amount spent on electricity annually Calculate Utility Rate (which tends to increase around 2.2% each year) Location, Energy usage, and the current average price of solar panel installation in your area. Put all that information into an online calculator such as the one available at energysage.com/solar/calculator/
+
+
+
+# So what's up with solar?
+
+Over time, the popularity of solar and other forms of renewable energy has been increasing. More and more people, businesses, and utilities are investing in solar energy as an alternative to fossil fuels and other forms of energy. This change has been rapid, with most of this growth occurring since 2016. This upward trend in solar has no sign of stopping, and could be helpful in the state-wide goal of transforming our power sources. Residents appear to be a large contributor to these increases, as individuals have been consistently the largest proportion of customer types over the last few years. It is clear that the incentive programs have been a main driver then of these increases.
+
+What remains to be known is what these trends in solar mean for climate change mitigation. Will these increases continue at a fast enough rate to offset the effects of climate change? How much have these solar panels already done to help in ending the climate change crisis? Whatever the answers to those questions are, it is still comforting to see the popularity of these alternative and renewable sources of energy, and that many people are joined in this goal of increasing solar power usage all across Minnesota.
+
+
+
+
+# Limitations
+
+While the data used offers valuable insights, there are several limitations to the data that prevent a more comprehensive analysis. One area of improvement is to include demographic data in order to understand how solar capacity is serving different communities based on factors such as race, household median income, or home owner status. This information could assist in shaping policies that would help expand solar to the households and communities that need it the most. For instance, according to the Minnesota Department of Commerce, in 2021 the average energy burden in the state was 2%. However, low-income households averaged an energy burden that was four times that amount^[“Minnesota Energy Data Dashboard,” PowerPoint, Minnesota Department of Commerce, April 12, 2021, accessed April 28, 2022. https://mn.gov/commerce/policy-data-reports/energy-data-reports/energy-data.jsp]. Expanding solar access to these residents would work towards improving socioeconomic inequities. 
+
 
 
